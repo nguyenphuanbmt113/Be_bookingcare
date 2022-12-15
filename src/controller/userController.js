@@ -1,3 +1,4 @@
+import { login } from "../service/auth";
 import {
   createUser,
   deleteUser,
@@ -5,6 +6,7 @@ import {
   updateUser,
 } from "../service/userService";
 
+//CRUD
 const handleCreateUser = async (req, res) => {
   try {
     console.log(req.body);
@@ -68,10 +70,28 @@ const handleUpdateUser = async (req, res) => {
     });
   }
 };
+//REGISTER and login
+const handleLogin = async (req, res) => {
+  try {
+    const result = await login(req.body);
+    return res.status(200).json({
+      EM: result.EM,
+      EC: result.EC,
+      DT: result.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
 
 export {
   handleCreateUser,
   handleGetAllUser,
   handleDeleteUser,
   handleUpdateUser,
+  handleLogin,
 };

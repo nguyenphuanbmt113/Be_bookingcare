@@ -38,22 +38,17 @@ const login = async ({ email, password }) => {
   try {
     const res = await db.User.findOne({
       where: { email },
-      attributes: ["id", "name", "email", "role_code", "password"],
+      attributes: ["email", "roleId", "password"],
       raw: true,
     });
     console.log("res", res);
     if (res) {
       const booleanPass = comparePassword(password, res.password);
       if (booleanPass) {
-        const dataJWT = setToken({
-          id: res.id,
-          email: res.email,
-          role_code: res.role_code,
-        });
         return {
           EC: 0,
           EM: "login is successfull",
-          access_token: `Bearer ${dataJWT}`,
+          DT: res,
         };
       } else {
         return {
@@ -63,20 +58,19 @@ const login = async ({ email, password }) => {
         };
       }
     } else {
-       return {
-         EC: -1,
-         EM: "Email isn't Exist",
-         data: [],
-       };
+      return {
+        EC: -1,
+        EM: "Email isn't Exist",
+        data: [],
+      };
     }
-    // const dataJWT = setToken({
-    //   id: res[0].id,
-    //   email: res[0].email,
-    //   role_code: res[0].role_code,
-    // });
   } catch (error) {
     console.log(">>>>>>>>check:", error);
+    return {
+      EC: -1,
+      EM: "something wrong with service sql",
+      data: [],
+    };
   }
 };
-// export { register };
-module.exports = { login, register };
+export { login };
