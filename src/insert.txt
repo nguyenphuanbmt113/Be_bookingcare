@@ -1,3 +1,0 @@
-insert into Roles (code, value) values ('R1', 'Admin');
-insert into Roles (code, value) values ('R2', 'Mcderator');
-insert into Roles (code, value) values ('R2', 'User');
