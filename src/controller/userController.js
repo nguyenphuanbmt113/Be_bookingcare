@@ -73,6 +73,14 @@ const handleUpdateUser = async (req, res) => {
 //REGISTER and login
 const handleLogin = async (req, res) => {
   try {
+    console.log(req.body);
+    const { email, password } = req.body;
+    if (email === "" ||  password === "") {
+      return res.status(401).json({
+        EM: "missing input!",
+        EC: 2,
+      });
+    }
     const result = await login(req.body);
     return res.status(200).json({
       EM: result.EM,
