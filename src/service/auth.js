@@ -38,10 +38,9 @@ const login = async ({ email, password }) => {
   try {
     const res = await db.User.findOne({
       where: { email },
-      attributes: ["email", "roleId", "password"],
+      // attributes: ["email", "roleId", "password"],
       raw: true,
     });
-    console.log("res", res);
     if (res) {
       const booleanPass = comparePassword(password, res.password);
       if (booleanPass) {

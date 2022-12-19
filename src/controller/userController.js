@@ -9,9 +9,7 @@ import {
 //CRUD
 const handleCreateUser = async (req, res) => {
   try {
-    console.log(req.body);
     const response = await createUser(req.body);
-    console.log("response", response);
     return res.status(200).json({
       EC: response.EC,
       EM: response.EM,
@@ -27,7 +25,6 @@ const handleCreateUser = async (req, res) => {
 const handleGetAllUser = async (req, res) => {
   try {
     const response = await getAll();
-    console.log("response", response);
     return res.status(200).json({
       EC: response.EC,
       EM: response.EM,
@@ -57,7 +54,8 @@ const handleDeleteUser = async (req, res) => {
 };
 const handleUpdateUser = async (req, res) => {
   try {
-    const result = await updateUser(req.body);
+    console.log("req.body up:", req.body);
+    const result = await updateUser(req.body.data);
     return res.status(200).json({
       EM: result.EM,
       EC: result.EC,
@@ -73,9 +71,8 @@ const handleUpdateUser = async (req, res) => {
 //REGISTER and login
 const handleLogin = async (req, res) => {
   try {
-    console.log(req.body);
     const { email, password } = req.body;
-    if (email === "" ||  password === "") {
+    if (email === "" || password === "") {
       return res.status(401).json({
         EM: "missing input!",
         EC: 2,

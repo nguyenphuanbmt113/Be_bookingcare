@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import userApiRoute from "./router/userRoute";
 import configCORS from "./config/cors";
+import webRoute from "./router/webRoute";
 require("dotenv").config();
 require("./config/conectionSQL");
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.urlencoded({ extended: "true" }));
 configCORS(app);
 //router
 userApiRoute(app);
+webRoute(app);
 //port web
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);

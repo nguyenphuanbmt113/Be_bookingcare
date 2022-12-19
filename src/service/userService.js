@@ -17,13 +17,13 @@ const createUser = async (data) => {
       where: {
         [Op.or]: [{ email: data.email }, { phonenumber: data.phonenumber }],
       },
+      raw: true,
       defaults: {
         ...data,
         password: hashPassword(data.password),
         gender: data.gender === "1" ? true : false,
       },
     });
-    console.log("result", result);
     return {
       EC: result[1] ? 0 : 1,
       EM: result[1] ? "create is successfull" : "Email/Phone is exists",
@@ -59,6 +59,7 @@ const deleteUser = async (id) => {
   try {
     let user = await db.User.findOne({
       where: { id },
+      raw: false,
     });
     if (user) {
       await user.destroy();
@@ -73,6 +74,7 @@ const deleteUser = async (id) => {
       };
     }
   } catch (error) {
+    console.log(">>>>>>>>error", error);
     return {
       EM: "something wrongs in service",
       EC: -2,
@@ -84,10 +86,14 @@ const updateUser = async (data) => {
   try {
     let user = await db.User.findOne({
       where: { id: data?.id },
+      raw: false,
     });
     if (user) {
       user.set({
         email: data.email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        address: data.address,
         phone: data.phonenumber,
       });
       user.save({});
