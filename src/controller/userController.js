@@ -9,7 +9,9 @@ import {
 //CRUD
 const handleCreateUser = async (req, res) => {
   try {
+    console.log(req.body);
     const response = await createUser(req.body);
+    console.log("response", response)
     return res.status(200).json({
       EC: response.EC,
       EM: response.EM,

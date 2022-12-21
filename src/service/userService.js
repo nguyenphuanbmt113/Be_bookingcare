@@ -21,7 +21,8 @@ const createUser = async (data) => {
       defaults: {
         ...data,
         password: hashPassword(data.password),
-        gender: data.gender === "1" ? true : false,
+        gender: data.gender,
+        // image: data.image,
       },
     });
     return {
