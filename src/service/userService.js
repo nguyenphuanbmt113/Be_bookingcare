@@ -22,6 +22,7 @@ const createUser = async (data) => {
         ...data,
         password: hashPassword(data.password),
         gender: data.gender,
+        image: data.image,
         // image: data.image,
       },
     });
@@ -96,6 +97,10 @@ const updateUser = async (data) => {
         lastName: data.lastName,
         address: data.address,
         phone: data.phonenumber,
+        roleId: data.roleId,
+        gender: data.gender,
+        image: data.image,
+        positionId: data.positionId,
       });
       user.save({});
     } else {
@@ -108,7 +113,7 @@ const updateUser = async (data) => {
     return {
       EM: "update done",
       EC: 0,
-      DT: [],
+      DT: user,
     };
   } catch (error) {
     console.log(">>>>>>>alo check err:", error);
