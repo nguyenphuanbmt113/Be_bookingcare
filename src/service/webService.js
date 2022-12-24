@@ -108,6 +108,7 @@ const postInfoDoctor = async (data) => {
         doctorId: data.doctorId,
         contentHTML: data.contentHTML,
         contentMarkdown: data.contentMarkdown,
+        description: data.description,
       });
       // await db.Markdown.save({});
       return {
@@ -131,4 +132,47 @@ const postInfoDoctor = async (data) => {
     };
   }
 };
-export { getAllcodesByType, getDoctorHome, getAllDoctor, postInfoDoctor };
+const getDetailDoctorById = async (doctorId) => {
+  try {
+    const response = await db.User.findOne({
+      where: {
+        id: doctorId,
+      },
+      attributes: {
+        exclude: ["password", "image"],
+      },
+      include: [
+        {
+          model: db.Markdown,
+          attributes: ["description", "contentHTML", "contentMarkdown"],
+        },
+        {
+          model: db.Allcode,
+          as: "positionData",
+          attributes: ["valueEn", "valueVi"],
+        },  
+      ],
+      nest: true,
+      raw: true,
+    });
+    return {
+      EM: "get doctor by id success",
+      EC: 1,
+      DT: response,
+    };
+  } catch (error) {
+    console.log(">>>>check error service:", error);
+    return {
+      EM: "something wrongs in service",
+      EC: -2,
+      DT: [],
+    };
+  }
+};
+export {
+  getAllcodesByType,
+  getDoctorHome,
+  getAllDoctor,
+  postInfoDoctor,
+  getDetailDoctorById,
+};
