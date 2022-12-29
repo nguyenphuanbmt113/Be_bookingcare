@@ -3,6 +3,8 @@ import {
   getAllDoctor,
   getDetailDoctorById,
   getDoctorHome,
+  getScheduleByDate,
+  postBulkCreate,
   postInfoDoctor,
 } from "../service/webService";
 
@@ -65,12 +67,11 @@ const handleGetAllDoctor = async (req, res) => {
 };
 const handleCreateInfoDoctor = async (req, res) => {
   try {
-    console.log(req.body);
+    console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", req.body);
     const result = await postInfoDoctor(req.body);
     return res.status(200).json({
       EM: result.EM,
       EC: result.EC,
-      // DT: result?.DT,
     });
   } catch (error) {
     console.log(">>>>>>>check error:", error);
@@ -103,10 +104,60 @@ const handleGetDetailDoctorById = async (req, res) => {
     });
   }
 };
+
+const handleBulkCreate = async (req, res) => {
+  try {
+    console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>", req.body);
+    if (!req.body) {
+      return res.status(500).json({
+        EM: "Missing data",
+        EC: "-1",
+      });
+    }
+    const result = await postBulkCreate(req.body);
+    return res.status(200).json({
+      EM: result?.EM,
+      EC: result?.EC,
+      // DT: result?.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
+const handleGetScheduleByDate = async (req, res) => {
+  try {
+    if (!req.query) {
+      return res.status(500).json({
+        EM: "Missing data",
+        EC: "-1",
+      });
+    }
+    console.log(">>>>>>>>>>>", req.query);
+    // console.log(">>>>>>>>>>>", req.query.doctorId);
+    const result = await getScheduleByDate(req.query.doctorId, req.query.date);
+    return res.status(200).json({
+      EM: result?.EM,
+      EC: result?.EC,
+      DT: result?.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
 export {
   handleAllcodes,
   handleGetDoctorHome,
   handleGetAllDoctor,
   handleCreateInfoDoctor,
   handleGetDetailDoctorById,
+  handleBulkCreate,
+  handleGetScheduleByDate,
 };

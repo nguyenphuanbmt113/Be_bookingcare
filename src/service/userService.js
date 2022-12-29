@@ -110,11 +110,11 @@ const updateUser = async (data) => {
         DT: [],
       };
     }
-    return {
-      EM: "update done",
-      EC: 0,
-      DT: user,
-    };
+      return {
+        EM: "update done",
+        EC: 0,
+        DT: user,
+      };
   } catch (error) {
     console.log(">>>>>>>alo check err:", error);
     return {

@@ -1,21 +1,27 @@
 "use strict";
 const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
-  class Schelude extends Model {
-    static associate(models) {}
+  class Schedule extends Model {
+    static associate(models) {
+      Schedule.belongsTo(models.Allcode, {
+        foreignKey: "timeType",
+        targetKey: "keyMap",
+        as: "timeTypeData",
+      });
+    }
   }
-  Schelude.init(
+  Schedule.init(
     {
-      currentNumbe: DataTypes.INTEGER,
+      currentNumber: DataTypes.INTEGER,
       maxNumber: DataTypes.INTEGER,
-      date: DataTypes.DATE,
+      date: DataTypes.STRING,
       timeType: DataTypes.STRING,
       doctorId: DataTypes.INTEGER,
     },
     {
       sequelize,
-      modelName: "Schelude",
+      modelName: "Schedule",
     }
   );
-  return Schelude;
+  return Schedule;
 };
