@@ -1,6 +1,6 @@
 import _ from "lodash";
 import db from "../models";
-import moment from "moment";
+import { sendSimpleEmail } from "./emailService";
 require("dotenv").config();
 const getAllcodesByType = async (type) => {
   try {
@@ -177,7 +177,26 @@ const getDetailDoctorById = async (doctorId) => {
         },
         {
           model: db.Doctor_Infor,
-          // attributes: ["description", "contentHTML", "contentMarkdown"],
+          attributes: {
+            exclude: ["id", "doctorId"],
+          },
+          include: [
+            {
+              model: db.Allcode,
+              as: "priceData",
+              attributes: ["valueEn", "valueVi"],
+            },
+            {
+              model: db.Allcode,
+              as: "provinceData",
+              attributes: ["valueEn", "valueVi"],
+            },
+            {
+              model: db.Allcode,
+              as: "paymentData",
+              attributes: ["valueEn", "valueVi"],
+            },
+          ],
         },
         {
           model: db.Allcode,
@@ -274,6 +293,161 @@ const getScheduleByDate = async (doctorId, date) => {
     };
   }
 };
+const getExtraInforDoctorById = async (id) => {
+  try {
+    if (!id) {
+      return {
+        EM: "Missing required parameters!",
+        EC: 1,
+      };
+    }
+    const res = await db.Doctor_Infor.findOne({
+      where: { doctorId: id },
+      attributes: {
+        exclude: ["id", "doctorId"],
+      },
+      include: [
+        {
+          model: db.Allcode,
+          as: "priceData",
+          attributes: ["valueEn", "valueVi"],
+        },
+        {
+          model: db.Allcode,
+          as: "provinceData",
+          attributes: ["valueEn", "valueVi"],
+        },
+        {
+          model: db.Allcode,
+          as: "paymentData",
+          attributes: ["valueEn", "valueVi"],
+        },
+      ],
+      nest: true,
+      raw: true,
+    });
+    return {
+      EM: "get doctorInfor Extra by date success",
+      EC: 0,
+      DT: res || [],
+    };
+  } catch (error) {
+    console.log(">>>>check error service:", error);
+    return {
+      EM: "something wrongs in service",
+      EC: -2,
+      DT: [],
+    };
+  }
+};
+const getProfileDoctorById = async (doctorId) => {
+  try {
+    if (!doctorId) {
+      return {
+        EM: "Missing required Parameter!",
+        EC: -2,
+        DT: [],
+      };
+    }
+    const response = await db.User.findOne({
+      where: {
+        id: doctorId,
+      },
+      attributes: {
+        exclude: ["password"],
+      },
+      include: [
+        {
+          model: db.Doctor_Infor,
+          attributes: {
+            exclude: ["id", "doctorId"],
+          },
+          include: [
+            {
+              model: db.Allcode,
+              as: "priceData",
+              attributes: ["valueEn", "valueVi"],
+            },
+            {
+              model: db.Allcode,
+              as: "provinceData",
+              attributes: ["valueEn", "valueVi"],
+            },
+            {
+              model: db.Allcode,
+              as: "paymentData",
+              attributes: ["valueEn", "valueVi"],
+            },
+          ],
+        },
+        {
+          model: db.Allcode,
+          as: "positionData",
+          attributes: ["valueEn", "valueVi"],
+        },
+      ],
+      nest: true,
+      raw: true,
+    });
+    console.log("response", response);
+    if (response && response.image) {
+      response.image = new Buffer(response.image, "base64").toString("binary");
+    }
+    return {
+      EM: "get doctor by id success",
+      EC: 0,
+      DT: response,
+    };
+  } catch (error) {}
+};
+const postBookingforpatient = async (data) => {
+  try {
+    //validate
+    if (!data.email) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter!",
+      };
+    } else {
+      await sendSimpleEmail({
+        reciverEmail: data.email,
+        patientName: "Nguyễn Phú An",
+        nameDoctor: "Em yêu anh",
+        time: "9:00 - 10:00 Chủ nhật ngày 1/8/2022",
+        linkto:
+          "https://4kwallpapers.com/games/yoru-valorant-stealth-agent-pc-games-red-background-4121.html",
+      });
+      //send email config
+      //ilnsert patient
+      const user = await db.User.findOrCreate({
+        where: { email: data.email },
+        defaults: { email: data.email, roleId: "R3" },
+      });
+      if (user && user[0]) {
+        await db.Booking.findOrCreate({
+          where: { patientId: user[0].id },
+          defaults: {
+            statusId: "S1",
+            doctorId: data.doctorId,
+            patientId: user[0].id,
+            date: data.date,
+            timeType: data.timeType,
+          },
+        });
+      }
+      return {
+        EC: 0,
+        EM: "insert patient success",
+      };
+    }
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "something wrong with service",
+    };
+  }
+};
 export {
   getAllcodesByType,
   getDoctorHome,
@@ -282,4 +456,7 @@ export {
   getDetailDoctorById,
   postBulkCreate,
   getScheduleByDate,
+  getExtraInforDoctorById,
+  getProfileDoctorById,
+  postBookingforpatient,
 };

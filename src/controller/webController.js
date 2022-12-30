@@ -3,7 +3,10 @@ import {
   getAllDoctor,
   getDetailDoctorById,
   getDoctorHome,
+  getExtraInforDoctorById,
+  getProfileDoctorById,
   getScheduleByDate,
+  postBookingforpatient,
   postBulkCreate,
   postInfoDoctor,
 } from "../service/webService";
@@ -152,6 +155,57 @@ const handleGetScheduleByDate = async (req, res) => {
     });
   }
 };
+const handleGetExtraInforDoctor = async (req, res) => {
+  try {
+    console.log(">>>>>>>>>>>", req.query);
+    const result = await getExtraInforDoctorById(req.query.id);
+    return res.status(200).json({
+      EM: result?.EM,
+      EC: result?.EC,
+      DT: result?.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
+const handleGetProfileDoctor = async (req, res) => {
+  try {
+    console.log(">>>>>>>>>>>", req.query);
+    const result = await getProfileDoctorById(req.query.id);
+    return res.status(200).json({
+      EM: result?.EM,
+      EC: result?.EC,
+      DT: result?.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
+const handlePatientBooking = async (req, res) => {
+  try {
+    console.log(">>>>>>body:", res.body);
+    const result = await postBookingforpatient(req.body);
+    return res.status(200).json({
+      EM: result?.EM,
+      EC: result?.EC,
+      DT: result?.DT,
+    });
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return res.status(500).json({
+      EM: "error from server",
+      EC: "-1",
+    });
+  }
+};
 export {
   handleAllcodes,
   handleGetDoctorHome,
@@ -160,4 +214,7 @@ export {
   handleGetDetailDoctorById,
   handleBulkCreate,
   handleGetScheduleByDate,
+  handleGetExtraInforDoctor,
+  handleGetProfileDoctor,
+  handlePatientBooking,
 };

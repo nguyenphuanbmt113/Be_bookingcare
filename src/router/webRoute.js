@@ -7,6 +7,9 @@ const {
   handleGetDetailDoctorById,
   handleBulkCreate,
   handleGetScheduleByDate,
+  handleGetExtraInforDoctor,
+  handleGetProfileDoctor,
+  handlePatientBooking,
 } = require("../controller/webController");
 let router = express.Router();
 const webRoute = (app) => {
@@ -18,6 +21,11 @@ const webRoute = (app) => {
   router.get("/get-detail-doctor-by-id", handleGetDetailDoctorById);
   router.post("/bulk-create-schedule", handleBulkCreate);
   router.get("/schedule-doctor-by-date", handleGetScheduleByDate);
+  router.get("/get-extra-infor-doctor-id", handleGetExtraInforDoctor);
+  router.get("/get-profile-doctor-id", handleGetProfileDoctor);
+  //patirnt-booking
+  router.post("/patient-book-appointment", handlePatientBooking);
+
   return app.use("/api/v1/", router);
 };
 module.exports = webRoute;
