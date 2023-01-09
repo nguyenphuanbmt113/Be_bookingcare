@@ -47,7 +47,7 @@ const getAll = async () => {
     return {
       EC: 0,
       EM: "get all user is successfull",
-      data: result,
+      DT: result,
     };
   } catch (error) {
     console.log(">>>>>>>>check:", error);

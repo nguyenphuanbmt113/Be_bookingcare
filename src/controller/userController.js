@@ -30,7 +30,7 @@ const handleGetAllUser = async (req, res) => {
     return res.status(200).json({
       EC: response.EC,
       EM: response.EM,
-      data: response.data,
+      DT: response.DT,
     });
   } catch (error) {
     console.log(">>>>>>>>check error:", error);
@@ -82,6 +82,8 @@ const handleLogin = async (req, res) => {
       });
     }
     const result = await login(req.body);
+    //set cookie
+    res.cookie("jwt", result.DT.access_token, { httpOnly: true});
     return res.status(200).json({
       EM: result.EM,
       EC: result.EC,

@@ -1,4 +1,5 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import bodyParser from "body-parser";
 import userApiRoute from "./router/userRoute";
 import configCORS from "./config/cors";
@@ -11,6 +12,7 @@ const port = 8080;
 app.use(bodyParser.json({ limit: "50mb", extended: true }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 configCORS(app);
+app.use(cookieParser());
 //router
 userApiRoute(app);
 webRoute(app);

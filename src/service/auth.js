@@ -1,4 +1,4 @@
-import { setToken } from "../config/jwt";
+import { createToken, setToken } from "../config/jwt";
 import db from "../models";
 let bcrypt = require("bcryptjs");
 let salt = bcrypt.genSaltSync(10);
@@ -38,16 +38,30 @@ const login = async ({ email, password }) => {
   try {
     const res = await db.User.findOne({
       where: { email },
-      // attributes: ["email", "roleId", "password"],
       raw: true,
+      attributes: {
+        exclude: ["image"]
+      }
     });
     if (res) {
       const booleanPass = comparePassword(password, res.password);
       if (booleanPass) {
+        //tạo paylaod
+        let payload = {
+          firstName: res.firstName,
+          lastName: res.lastName,
+          email: res.email,
+          roleId: res.roleId,
+        };
+        //tạo token ném về user
+        let token = createToken(payload);
         return {
           EC: 0,
           EM: "login is successfull",
-          DT: res,
+          DT: {
+            res: res,
+            access_token: token,
+          },
         };
       } else {
         return {

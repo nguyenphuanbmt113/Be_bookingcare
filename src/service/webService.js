@@ -1,7 +1,12 @@
 import _ from "lodash";
 import db from "../models";
-import { sendSimpleEmail } from "./emailService";
+import { v4 as uuidv4 } from "uuid";
+import { sendSimpleEmail, buildUrlEmail, sendAttachment } from "./emailService";
 require("dotenv").config();
+//check required field
+const chekRequireData = (data) => {
+  let arr = "";
+};
 const getAllcodesByType = async (type) => {
   try {
     if (!type) {
@@ -59,6 +64,19 @@ const getDoctorHome = async (limit) => {
           model: db.Allcode,
           as: "genderData",
           attributes: ["valueEn", "valueVi"],
+        },
+        {
+          model: db.Doctor_Infor,
+          attributes: ["specialtyId"],
+          include: [
+            {
+              model: db.Specialty,
+              as: "SpecialtyData",
+              attributes: ["name"],
+            },
+          ],
+          // as: "doctorId",
+          // attributes: ["valueEn", "valueVi"],
         },
       ],
     });
@@ -130,7 +148,9 @@ const postInfoDoctor = async (data) => {
     }
     if (DoctorInfor) {
       await DoctorInfor.update({
+        clinicId: data.clinicId,
         priceId: data.selectPrice,
+        specialtyId: data.specialtyId,
         paymentId: data.selectPayment,
         proviceId: data.selectProvice,
         nameClinic: data.nameClinic,
@@ -140,6 +160,8 @@ const postInfoDoctor = async (data) => {
     } else {
       const response = await db.Doctor_Infor.create({
         doctorId: data.doctorId,
+        specialtyId: data.specialtyId,
+        clinicId: data.clinicId,
         priceId: data.selectPrice,
         paymentId: data.selectPayment,
         proviceId: data.selectProvice,
@@ -207,7 +229,6 @@ const getDetailDoctorById = async (doctorId) => {
       nest: true,
       raw: true,
     });
-    console.log("response", response);
     if (response && response.image) {
       response.image = new Buffer(response.image, "base64").toString("binary");
     }
@@ -276,6 +297,11 @@ const getScheduleByDate = async (doctorId, date) => {
           attributes: ["valueVi", "valueEn"],
           as: "timeTypeData",
         },
+        {
+          model: db.User,
+          attributes: ["firstName", "lastName"],
+          as: "doctorData",
+        },
       ],
     });
     console.log(">>>>>>>>>res", res);
@@ -303,9 +329,9 @@ const getExtraInforDoctorById = async (id) => {
     }
     const res = await db.Doctor_Infor.findOne({
       where: { doctorId: id },
-      attributes: {
-        exclude: ["id", "doctorId"],
-      },
+      // attributes: {
+      //   exclude: ["id", "doctorId"],
+      // },
       include: [
         {
           model: db.Allcode,
@@ -321,6 +347,11 @@ const getExtraInforDoctorById = async (id) => {
           model: db.Allcode,
           as: "paymentData",
           attributes: ["valueEn", "valueVi"],
+        },
+        {
+          model: db.Markdown,
+          as: "MarkdownData",
+          // attributes: ["valueEn", "valueVi"],
         },
       ],
       nest: true,
@@ -401,28 +432,38 @@ const getProfileDoctorById = async (doctorId) => {
   } catch (error) {}
 };
 const postBookingforpatient = async (data) => {
+  console.log("data booking patient ", data);
   try {
     //validate
-    if (!data.email) {
+    if (!data.email || !data.fullName || !data.doctorId || !data.date) {
       return {
         EC: 1,
         EM: "Missing required parameter!",
       };
     } else {
+      let token = uuidv4();
       await sendSimpleEmail({
         reciverEmail: data.email,
-        patientName: "Nguyễn Phú An",
+        patientName: data.fullName,
         nameDoctor: "Em yêu anh",
-        time: "9:00 - 10:00 Chủ nhật ngày 1/8/2022",
-        linkto:
-          "https://4kwallpapers.com/games/yoru-valorant-stealth-agent-pc-games-red-background-4121.html",
+        language: data.language,
+        time: data.timeString,
+        linkto: buildUrlEmail(token, data.doctorId),
       });
       //send email config
       //ilnsert patient
       const user = await db.User.findOrCreate({
         where: { email: data.email },
-        defaults: { email: data.email, roleId: "R3" },
+        defaults: {
+          email: data.email,
+          roleId: "R3",
+          address: data.address,
+          firstName: data.fullName,
+          gender: data.selectedGender,
+        },
       });
+      console.log("user", user);
+      //insert to booking
       if (user && user[0]) {
         await db.Booking.findOrCreate({
           where: { patientId: user[0].id },
@@ -432,6 +473,7 @@ const postBookingforpatient = async (data) => {
             patientId: user[0].id,
             date: data.date,
             timeType: data.timeType,
+            token: token,
           },
         });
       }
@@ -448,7 +490,430 @@ const postBookingforpatient = async (data) => {
     };
   }
 };
+const postVerifyToken = async (data) => {
+  try {
+    if (!data.token || !data.doctorId) {
+      return {
+        EC: 2,
+        EM: "Missng required parameter!",
+      };
+    } else {
+      let appointment = await db.Booking.findOne({
+        where: {
+          token: data.token,
+          doctorId: data.doctorId,
+          statusId: "S1",
+        },
+        raw: false,
+      });
+      console.log("appointment", appointment);
+      if (appointment) {
+        // appointment.statusId = "S2";
+        await appointment.update({
+          statusId: "S2",
+        });
+        // await appointment.save();
+        return {
+          EC: 0,
+          EM: "Update the appointment success",
+        };
+      } else {
+        return {
+          EC: 1,
+          EM: "schedule has been activated or does not exist",
+        };
+      }
+    }
+  } catch (error) {
+    console.log(">>>>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "something wrong with service",
+    };
+  }
+};
+const postCreateSpecialty = async (data) => {
+  try {
+    if (
+      !data.specialtyName ||
+      !data.imageBase64 ||
+      !data.contentHTML ||
+      !data.contentMarkdown
+    ) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter",
+      };
+    } else {
+      await db.Specialty.create({
+        name: data.specialtyName,
+        image: data.imageBase64,
+        descriptionHTML: data.contentHTML,
+        descriptionMarkdown: data.contentMarkdown,
+      });
+      return {
+        EC: 0,
+        EM: "Create especialty success",
+      };
+    }
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const postCreateClinic = async (data) => {
+  try {
+    if (
+      !data.name ||
+      !data.address ||
+      !data.imageBase64 ||
+      !data.descriptionHTML ||
+      !data.descriptionMarkdown
+    ) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter",
+      };
+    } else {
+      await db.Clinic.create({
+        name: data.name,
+        address: data.address,
+        image: data.imageBase64,
+        descriptionHTML: data.descriptionHTML,
+        descriptionMarkdown: data.descriptionMarkdown,
+      });
+      return {
+        EC: 0,
+        EM: "Create especialty success",
+      };
+    }
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const getSpecialty = async () => {
+  try {
+    const res = await db.Specialty.findAll();
+    if (res && res.length > 0) {
+      res.forEach((item, index) => {
+        item.image = new Buffer(item.image, "base64").toString("binary");
+      });
+    }
+    return {
+      EC: 0,
+      EM: "Get specialty success",
+      DT: res,
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const getSpecialtyById = async (id, location) => {
+  try {
+    if (!id || !location) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter!",
+      };
+    }
+    if (location === "ALL") {
+      const res = await db.Specialty.findOne({
+        where: { id },
+        attributes: ["descriptionHTML", "descriptionMarkdown"],
+        raw: false,
+        include: [
+          {
+            model: db.Doctor_Infor,
+            as: "SpecialtyData",
+            attributes: ["doctorId", "proviceId", "addressClinic"],
+          },
+        ],
+      });
+      return {
+        EC: 0,
+        EM: "Get all specialty by id success",
+        DT: res || {},
+      };
+    } else {
+      //finf doctor location
+      const res = await db.Specialty.findOne({
+        where: { id: id },
+        attributes: ["descriptionHTML", "descriptionMarkdown"],
+        raw: false,
+        include: [
+          {
+            model: db.Doctor_Infor,
+            as: "SpecialtyData",
+            attributes: ["doctorId", "proviceId", "addressClinic"],
+            where: {
+              proviceId: location,
+            },
+          },
+        ],
+      });
+      if (!res) {
+        return {
+          EC: 0,
+          EM: "don't have any data",
+          DT: res || {},
+        };
+      }
+      return {
+        EC: 0,
+        EM: "Get specialty by id & location",
+        DT: res || {},
+      };
+    }
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const getAllClinic = async () => {
+  try {
+    const res = await db.Clinic.findAll();
+    if (res && res.length > 0) {
+      res.forEach((item, index) => {
+        item.image = new Buffer(item.image, "base64").toString("binary");
+      });
+    }
+    return {
+      EC: 0,
+      EM: "Get clinic success",
+      DT: res,
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const getClinicById = async (id) => {
+  try {
+    if (!id) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter!",
+      };
+    }
+    const res = await db.Clinic.findOne({
+      where: { id },
+      attributes: [
+        "descriptionHTML",
+        "descriptionMarkdown",
+        "name",
+        "address",
+        "image",
+      ],
+      raw: false,
+      include: [
+        {
+          model: db.Doctor_Infor,
+          as: "ClinicData",
+          attributes: ["doctorId", "proviceId"],
+        },
+      ],
+    });
+    if (res && res.image) {
+      res.image = new Buffer(res.image, "base64").toString("binary");
+    }
+    if (!res) {
+      return {
+        EC: 0,
+        EM: "Don't Get clinic by id",
+        DT: res,
+      };
+    }
+    return {
+      EC: 0,
+      EM: "Get clinic by id success",
+      DT: res,
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const getListPatientForDoctor = async (doctorId, date) => {
+  try {
+    if (!doctorId || !date) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter!",
+      };
+    }
+    const res = await db.Booking.findAll({
+      where: {
+        statusId: "S2",
+        date: date,
+        doctorId: doctorId,
+      },
+      raw: false,
+      nest: true,
+      include: [
+        {
+          model: db.User,
+          as: "patientData",
+          attributes: ["email", "firstName", "address", "gender"],
+          include: [
+            {
+              model: db.Allcode,
+              as: "genderData",
+              attributes: ["valueEn", "valueVi"],
+            },
+          ],
+        },
+        {
+          model: db.Allcode,
+          as: "timetypeDataPatient",
+          attributes: ["valueEn", "valueVi"],
+        },
+      ],
+    });
+    if (!res) {
+      return {
+        EC: 0,
+        EM: "Get list patient for doctor by date success",
+        DT: [],
+      };
+    }
+    return {
+      EC: 0,
+      EM: "Get list patient for doctor by date success",
+      DT: res,
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const sendRedemy = async (data) => {
+  console.log("data truyen len serevc", data);
+  try {
+    if (!data.email || !data.doctorId || !data.patientId || !data.timeType) {
+      return {
+        EC: 1,
+        EM: "Missing required parameter!",
+      };
+    }
+    //update patient status
+    let appointment = await db.Booking.findOne({
+      where: {
+        doctorId: data.doctorId,
+        patientId: data.patientId,
+        timeType: data.timeType,
+        statusId: "S2",
+      },
+      raw: false,
+    });
+    if (appointment) {
+      appointment.update({
+        statusId: "S3",
+      });
+    }
+    //send email remedy
+    console.log("");
+    await sendAttachment(data);
+    return {
+      EC: 0,
+      EM: "Update suceess confirm status",
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const userParameter = async (limit, page) => {
+  try {
+    let offset = (page - 1) * limit + 1 || 1;
+    limit = limit || 3
+    let { count, rows } = await db.User.findAndCountAll({
+      offset: +offset,
+      limit: +limit || 3,
+      attributes: {
+        exclude: ["image", "password", "createdAt", "updatedAt"],
+      },
+    });
+    let totalPage = count / limit;
+    return {
+      EC: 0,
+      EM: "user parameter",
+      DT: {
+        count: totalPage,
+        rows,
+      },
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
+const doctorParameter = async (limit, page) => {
+  try {
+    let offset = (page - 1) * limit + 1;
+    let { count, rows } = await db.User.findAndCountAll({
+      where: {
+        roleId: "R2",
+      },
+      offset: +offset,
+      limit: +limit,
+      attributes: {
+        exclude: ["image", "password", "createdAt", "updatedAt"],
+      },
+    });
+    let totalPage = count / limit;
+    return {
+      EC: 0,
+      EM: "user parameter",
+      DT: {
+        count: totalPage,
+        rows,
+      },
+    };
+  } catch (error) {
+    console.log(">>>>>check error:", error);
+    return {
+      EC: -1,
+      EM: "Sonething wrong with service",
+    };
+  }
+};
 export {
+  doctorParameter,
+  userParameter,
+  sendRedemy,
+  getListPatientForDoctor,
+  getClinicById,
+  getAllClinic,
+  postCreateClinic,
   getAllcodesByType,
   getDoctorHome,
   getAllDoctor,
@@ -459,4 +924,8 @@ export {
   getExtraInforDoctorById,
   getProfileDoctorById,
   postBookingforpatient,
+  postVerifyToken,
+  postCreateSpecialty,
+  getSpecialty,
+  getSpecialtyById,
 };
